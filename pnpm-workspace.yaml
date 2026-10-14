@@ -2,4 +2,11 @@ packages:
   - apps/*
   - packages/*
 
+allowBuilds:
+  unrs-resolver: false
+
 injectWorkspacePackages: true
+
+peerDependencyRules:
+  allowedVersions:
+    eslint-plugin-jsx-a11y>eslint: "10"

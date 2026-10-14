@@ -1,9 +1,24 @@
 # Pinned versions
 
-| Package | Version | Date | Reason |
-| --- | --- | --- | --- |
-| node | 24 (LTS) | 2026-10-14 | Required by CT-001; `engines.node` is `>=24 <25`, `.nvmrc` is `24` |
-| pnpm | 12.11.2 | 2026-10-14 | Latest release; pinned through `packageManager` |
-| turbo | 2.11.7 | 2026-10-14 | Latest release older than 7 days; 2.11.8 was too new for the pnpm 12 release-age protection |
-| typescript | 6.0.3 | 2026-10-14 | Latest 6.x; typescript-eslint (CT-002) does not support TypeScript 7 yet |
-| @types/node | 24.19.2 | 2026-10-14 | Matches the Node 24 runtime; required by the `node` tsconfig preset |
+| Package                                          | Version  | Date       | Reason                                                                                                                                                                    |
+| ------------------------------------------------ | -------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| node                                             | 24 (LTS) | 2026-10-14 | Required by CT-001; `engines.node` is `>=24 <25`, `.nvmrc` is `24`                                                                                                        |
+| pnpm                                             | 12.11.2  | 2026-10-14 | Latest release; pinned through `packageManager`                                                                                                                           |
+| turbo                                            | 2.11.7   | 2026-10-14 | Latest release older than 7 days; 2.11.8 was too new for the pnpm 12 release-age protection                                                                               |
+| typescript                                       | 6.0.3    | 2026-10-14 | Latest 6.x; typescript-eslint (CT-002) does not support TypeScript 7 yet                                                                                                  |
+| @types/node                                      | 24.19.2  | 2026-10-14 | Matches the Node 24 runtime; required by the `node` tsconfig preset                                                                                                       |
+| eslint                                           | 10.12.0  | 2026-10-14 | Latest 10.x; flat config only. Peer of `@certtrack/eslint-config`                                                                                                         |
+| @eslint/js                                       | 10.0.1   | 2026-10-14 | Latest; its peer range requires ESLint 10                                                                                                                                 |
+| typescript-eslint                                | 8.71.2   | 2026-10-14 | Latest; peer range `typescript >=4.8.4 <6.1.0` is why TypeScript stays on 6.x                                                                                             |
+| eslint-plugin-import-x                           | 4.17.1   | 2026-10-14 | Latest; maintained fork of `eslint-plugin-import` with flat config support                                                                                                |
+| eslint-import-resolver-typescript                | 4.4.5    | 2026-10-14 | Latest; resolver for import-x                                                                                                                                             |
+| eslint-plugin-react-hooks                        | 7.1.1    | 2026-10-14 | Latest; flat `recommended` preset                                                                                                                                         |
+| eslint-plugin-jsx-a11y                           | 6.10.2   | 2026-10-14 | Latest; peer range stops at ESLint 9, so `peerDependencyRules.allowedVersions` in `pnpm-workspace.yaml` allows ESLint 10 (rules work, upstream has not widened the range) |
+| @types/eslint-plugin-jsx-a11y                    | 6.10.1   | 2026-10-14 | Types for `react.js`, checked by `tsc`                                                                                                                                    |
+| eslint-config-prettier                           | 10.1.8   | 2026-10-14 | Latest; `eslint-config-prettier/flat` entry                                                                                                                               |
+| globals                                          | 17.13.0  | 2026-10-14 | Latest                                                                                                                                                                    |
+| prettier                                         | 3.9.10   | 2026-10-14 | Latest 3.x; `printWidth: 100`                                                                                                                                             |
+| husky                                            | 9.1.7    | 2026-10-14 | Latest; `prepare: husky`                                                                                                                                                  |
+| lint-staged                                      | 17.6.0   | 2026-10-14 | Latest                                                                                                                                                                    |
+| @commitlint/cli, @commitlint/config-conventional | 21.2.3   | 2026-10-14 | Latest                                                                                                                                                                    |
+| gitleaks                                         | >= 8.19  | 2026-10-14 | Binary installed outside pnpm. `gitleaks git` replaces the deprecated `protect` from 8.19                                                                                 |
