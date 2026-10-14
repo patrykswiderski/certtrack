@@ -1,0 +1,7 @@
+pnpm-lock.yaml
+dist
+.turbo
+coverage
+.codegraph
+docs/spec.md
+docs/backlog.md
