@@ -5,6 +5,7 @@ import { ESLint } from "eslint";
 
 import { createBaseConfig } from "../base.js";
 import { allowRawSqlIn, domainImportBoundaries } from "../boundaries.js";
+import { createNestjsConfig } from "../nestjs.js";
 import { createReactConfig } from "../react.js";
 
 const PACKAGE_DIRECTORY = import.meta.dirname + "/..";
@@ -68,5 +69,21 @@ describe("import boundaries and raw SQL ban", () => {
       ...allowRawSqlIn(["fixtures/raw-sql-allowed.ts"]),
     ]);
     assert.ok(!ruleIds.includes("no-restricted-syntax"));
+  });
+
+  it("reports floating promises in the nestjs preset", async () => {
+    const ruleIds = await lintFixtureAndCollectRuleIds(
+      "floating-promise.ts",
+      createNestjsConfig(createBaseOptions()),
+    );
+    assert.ok(ruleIds.includes("@typescript-eslint/no-floating-promises"));
+  });
+
+  it("reports non-exhaustive switches in the base preset", async () => {
+    const ruleIds = await lintFixtureAndCollectRuleIds(
+      "switch-not-exhaustive.ts",
+      createBaseConfig(createBaseOptions()),
+    );
+    assert.ok(ruleIds.includes("@typescript-eslint/switch-exhaustiveness-check"));
   });
 });
