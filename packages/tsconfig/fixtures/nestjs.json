@@ -1,0 +1,7 @@
+{
+  "extends": "../nestjs.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": ["nestjs.sample.ts"]
+}

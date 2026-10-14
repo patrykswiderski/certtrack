@@ -2,6 +2,7 @@
   "name": "@certtrack/tsconfig",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
   "files": [
     "base.json",
     "node.json",
@@ -13,5 +14,12 @@
     "./node.json": "./node.json",
     "./nestjs.json": "./nestjs.json",
     "./react.json": "./react.json"
+  },
+  "scripts": {
+    "typecheck": "tsc -p fixtures/base.json && tsc -p fixtures/node.json && tsc -p fixtures/nestjs.json && tsc -p fixtures/react.json"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "typescript": "6.0.3"
   }
 }
