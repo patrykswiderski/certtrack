@@ -1,0 +1,182 @@
+name: certtrack
+
+services:
+  postgres:
+    image: postgres:18.6@sha256:74935e72241653ca55e0414067e6d8763aceb8a810eb51b452253ec3dcfc4336
+    profiles: [core]
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+    ports:
+      - "${POSTGRES_PORT:-54320}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", 'pg_isready -U "$${POSTGRES_USER}" -d certtrack']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    mem_limit: 1g
+
+  valkey:
+    image: valkey/valkey:9.1.2@sha256:418652cfb58ef879d4978c33553735d7147016032d5aefaa14c828e611eb9dfd
+    profiles: [core]
+    restart: unless-stopped
+    command: ["valkey-server", "--appendonly", "yes"]
+    ports:
+      - "${VALKEY_PORT:-6379}:6379"
+    volumes:
+      - valkey-data:/data
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    mem_limit: 512m
+
+  mailpit:
+    image: axllent/mailpit:v1.31.5@sha256:94f6b70c1436defae6799d9ac7ff0eeff9540465b842026d5cdb018f1c0234ea
+    profiles: [core]
+    restart: unless-stopped
+    ports:
+      - "${MAILPIT_SMTP_PORT:-1025}:1025"
+      - "${MAILPIT_UI_PORT:-8025}:8025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    mem_limit: 128m
+
+  garage:
+    image: dxflrs/garage:v2.4.1@sha256:9c96caa2612d3411acc5b0e6701fb238dbfba33e533a6d7d3d811a4b12d0d020
+    profiles: [core]
+    restart: unless-stopped
+    command: ["/garage", "server", "--single-node", "--default-bucket"]
+    environment:
+      GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET}
+      GARAGE_ADMIN_TOKEN: ${GARAGE_ADMIN_TOKEN}
+      GARAGE_DEFAULT_ACCESS_KEY: ${S3_ACCESS_KEY_ID}
+      GARAGE_DEFAULT_SECRET_KEY: ${S3_SECRET_ACCESS_KEY}
+      GARAGE_DEFAULT_BUCKET: ${S3_BUCKET:-certtrack-documents}
+    ports:
+      - "${S3_PORT:-3900}:3900"
+    volumes:
+      - ./infra/garage/garage.toml:/etc/garage.toml:ro
+      - garage-meta:/var/lib/garage/meta
+      - garage-data:/var/lib/garage/data
+    healthcheck:
+      test: ["CMD", "/garage", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    mem_limit: 512m
+
+  storage-init:
+    image: amazon/aws-cli:2.38.0@sha256:ed3233c28ad56d6a66e9e7623a495ab2d7eb08d425f8eea0fdbdfacb12de2ba8
+    profiles: [core]
+    restart: "no"
+    depends_on:
+      garage:
+        condition: service_healthy
+    environment:
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+      AWS_DEFAULT_REGION: ${S3_REGION:-garage}
+      S3_BUCKET: ${S3_BUCKET:-certtrack-documents}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -eu
+        aws --endpoint-url http://garage:3900 s3api head-bucket --bucket "$${S3_BUCKET}"
+        aws --endpoint-url http://garage:3900 s3api put-bucket-cors --bucket "$${S3_BUCKET}" --cors-configuration file:///init/cors.json
+        aws --endpoint-url http://garage:3900 s3api get-bucket-cors --bucket "$${S3_BUCKET}"
+    volumes:
+      - ./infra/storage-init/cors.json:/init/cors.json:ro
+    mem_limit: 256m
+
+  moto:
+    image: motoserver/moto:5.2.4@sha256:120b1589c6df7e35d2092935f6ff724486bb2c4189d0e36ce795baba1400ffd2
+    profiles: [aws]
+    restart: unless-stopped
+    ports:
+      - "${MOTO_PORT:-5000}:5000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://localhost:5000/moto-api/')
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    mem_limit: 512m
+
+  aws-init:
+    image: amazon/aws-cli:2.38.0@sha256:ed3233c28ad56d6a66e9e7623a495ab2d7eb08d425f8eea0fdbdfacb12de2ba8
+    profiles: [aws]
+    restart: "no"
+    depends_on:
+      moto:
+        condition: service_healthy
+    environment:
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_DEFAULT_REGION: ${AWS_REGION:-eu-central-1}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -eu
+        aws --endpoint-url http://moto:5000 ses verify-email-identity --email-address no-reply@certtrack.local
+        aws --endpoint-url http://moto:5000 ses list-identities
+    mem_limit: 256m
+
+  pgadmin:
+    image: dpage/pgadmin4:9.18.0@sha256:c332c5f6dfba995d9ebc4af261d93506d6876085d712eaaa3defc8dd1a3f26de
+    profiles: [tools]
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:80/misc/ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    mem_limit: 512m
+
+  redisinsight:
+    image: redis/redisinsight:3.8.0@sha256:b5e19ee240abef6edb435871b90ff8a210995422e8e018ab61c0339d318a1f84
+    profiles: [tools]
+    restart: unless-stopped
+    environment:
+      RI_ACCEPT_TERMS_AND_CONDITIONS: "true"
+    ports:
+      - "${REDIS_INSIGHT_PORT:-5540}:5540"
+    volumes:
+      - redisinsight-data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5540/api/health/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    mem_limit: 512m
+
+volumes:
+  postgres-data:
+  valkey-data:
+  garage-meta:
+  garage-data:
+  pgadmin-data:
+  redisinsight-data:

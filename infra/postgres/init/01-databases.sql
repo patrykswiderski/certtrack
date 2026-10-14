@@ -1,0 +1,11 @@
+CREATE DATABASE certtrack;
+CREATE DATABASE certtrack_test;
+CREATE DATABASE keycloak;
+
+\connect certtrack
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE EXTENSION IF NOT EXISTS citext;
+
+\connect certtrack_test
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE EXTENSION IF NOT EXISTS citext;
